@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.vite/
+coverage/
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Docker
+*.log
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Database
+*.sqlite3
+
+# Personal notes — not part of the public repo
+private/

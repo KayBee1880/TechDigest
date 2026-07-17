@@ -1,0 +1,35 @@
+version: "3.9"
+
+# M0: only the datastores are wired up (usable standalone for local dev).
+# backend/worker/frontend services are added in M1, M3, and M5 respectively
+# once their Dockerfiles exist — see docs/roadmap.md.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: techdigest
+      POSTGRES_PASSWORD: techdigest
+      POSTGRES_DB: techdigest
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U techdigest"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
