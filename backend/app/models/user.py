@@ -9,5 +9,7 @@ class User(TimestampMixin, db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
 
+    bookmarks = db.relationship("Bookmark", back_populates="user")
+
     def __repr__(self):
         return f"<User {self.email}>"
