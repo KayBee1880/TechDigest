@@ -16,7 +16,7 @@ Each milestone should be its own set of commits/PRs, not one giant drop. Order m
 - ~~Docker Compose: Postgres + backend running together~~ — Postgres is containerized; the backend's `Dockerfile` is deferred to M3, so it can be written once alongside the Celery worker's (they'll likely share most of the same image). Don't drop this — needs to land before M7 deployment.
 - Repository-layer tests deferred to M2, once a repository layer actually exists to test.
 
-## M2 — Article ingestion (synchronous first)
+## M2 — Article ingestion (synchronous first) — done
 - `NewsProviderClient` implementations for HN API + 2-3 RSS feeds.
 - `NewsIngestionService`: normalize + dedupe + persist.
 - A manual script (`scripts/ingest_articles.py`) to run ingestion on demand.
