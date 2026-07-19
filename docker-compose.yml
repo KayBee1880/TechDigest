@@ -1,5 +1,3 @@
-version: "3.9"
-
 # M0: only the datastores are wired up (usable standalone for local dev).
 # backend/worker/frontend services are added in M1, M3, and M5 respectively
 # once their Dockerfiles exist — see docs/roadmap.md.
@@ -12,7 +10,7 @@ services:
       POSTGRES_PASSWORD: techdigest
       POSTGRES_DB: techdigest
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
