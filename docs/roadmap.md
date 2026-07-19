@@ -12,8 +12,9 @@ Each milestone should be its own set of commits/PRs, not one giant drop. Order m
 - SQLAlchemy models: `users`, `article_sources`, `articles`, `summaries`, `bookmarks`, `ingestion_jobs`, `processing_failures`.
 - Alembic migrations.
 - Health check endpoint (`/health`).
-- Pytest setup with a test database + first repository-layer tests.
-- Docker Compose: Postgres + backend running together.
+- Pytest setup with a test database.
+- ~~Docker Compose: Postgres + backend running together~~ — Postgres is containerized; the backend's `Dockerfile` is deferred to M3, so it can be written once alongside the Celery worker's (they'll likely share most of the same image). Don't drop this — needs to land before M7 deployment.
+- Repository-layer tests deferred to M2, once a repository layer actually exists to test.
 
 ## M2 — Article ingestion (synchronous first)
 - `NewsProviderClient` implementations for HN API + 2-3 RSS feeds.
