@@ -1,6 +1,5 @@
-from datetime import datetime
-
 from app.extensions import db
+from app.utils.time import utc_now
 
 
 class IngestionJob(db.Model):
@@ -12,10 +11,10 @@ class IngestionJob(db.Model):
     )
 
     status = db.Column(db.String(20), nullable=False, default="running")
-    started_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    started_at = db.Column(db.DateTime, nullable=False, default=utc_now)
     finished_at = db.Column(db.DateTime)
     updated_at = db.Column(
-        db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+        db.DateTime, nullable=False, default=utc_now, onupdate=utc_now
     )
 
     articles_found = db.Column(db.Integer, nullable=False, default=0)

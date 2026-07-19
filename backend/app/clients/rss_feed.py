@@ -4,6 +4,7 @@ import feedparser
 import requests
 
 from app.clients.base import USER_AGENT, NewsProviderClient, NormalizedArticle
+from app.utils.time import utc_now
 
 
 class RSSFeedClient(NewsProviderClient):
@@ -29,4 +30,4 @@ class RSSFeedClient(NewsProviderClient):
     def _parse_published(entry) -> datetime:
         if entry.get("published_parsed"):
             return datetime(*entry.published_parsed[:6])
-        return datetime.utcnow()
+        return utc_now()

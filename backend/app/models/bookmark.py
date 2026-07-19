@@ -1,6 +1,5 @@
-from datetime import datetime
-
 from app.extensions import db
+from app.utils.time import utc_now
 
 
 class Bookmark(db.Model):
@@ -10,7 +9,7 @@ class Bookmark(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     article_id = db.Column(db.Integer, db.ForeignKey("articles.id"), nullable=False)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
 
     user = db.relationship("User", back_populates="bookmarks")
     article = db.relationship("Article", back_populates="bookmarks")

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 import requests
 
@@ -42,6 +42,8 @@ class HackerNewsClient(NewsProviderClient):
         return NormalizedArticle(
             title=item.get("title", ""),
             url=item.get("url", discussion_url),
-            published_at=datetime.utcfromtimestamp(item.get("time", 0)),
+            published_at=datetime.fromtimestamp(item.get("time", 0), UTC).replace(
+                tzinfo=None
+            ),
             raw_content=item.get("text", ""),
         )

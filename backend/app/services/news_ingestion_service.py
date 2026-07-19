@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from sqlalchemy.exc import IntegrityError
 
 from app.clients.base import NormalizedArticle
@@ -8,6 +6,7 @@ from app.clients.rss_feed import RSSFeedClient
 from app.extensions import db
 from app.models import Article, ArticleSource, IngestionJob
 from app.utils.dedupe import canonicalize_url, hash_title
+from app.utils.time import utc_now
 
 
 class NewsIngestionService:
@@ -34,7 +33,7 @@ class NewsIngestionService:
             job.status = "failed"
             job.error_message = str(exc)
         finally:
-            job.finished_at = datetime.utcnow()
+            job.finished_at = utc_now()
             db.session.commit()
 
         return job

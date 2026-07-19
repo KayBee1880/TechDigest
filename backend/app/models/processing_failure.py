@@ -1,6 +1,5 @@
-from datetime import datetime
-
 from app.extensions import db
+from app.utils.time import utc_now
 
 
 class ProcessingFailure(db.Model):
@@ -11,7 +10,7 @@ class ProcessingFailure(db.Model):
 
     attempt_number = db.Column(db.Integer, nullable=False)
     error_message = db.Column(db.Text, nullable=False)
-    occurred_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    occurred_at = db.Column(db.DateTime, nullable=False, default=utc_now)
 
     article = db.relationship("Article")
 
