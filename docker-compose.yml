@@ -1,6 +1,6 @@
-# M0: only the datastores are wired up (usable standalone for local dev).
-# backend/worker/frontend services are added in M1, M3, and M5 respectively
-# once their Dockerfiles exist — see docs/roadmap.md.
+# M3: db + redis + backend API + Celery worker, sharing one Dockerfile
+# (backend/Dockerfile) since the API and worker run the same codebase.
+# frontend service is added in M5 once its own Dockerfile exists — see docs/roadmap.md.
 
 services:
   db:
@@ -29,5 +29,63 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build: ./backend
+    command: flask run --host=0.0.0.0 --port=5000
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: ./backend
+    command: celery -A celery_worker.celery_app worker --loglevel=info --concurrency=2
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+
+  beat:
+    build: ./backend
+    command: celery -A celery_worker.celery_app beat --loglevel=info
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # First run only: `docker compose exec ollama ollama pull llama3.2` to
+  # download the model — the image itself ships no models.
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
+  ollama_data:

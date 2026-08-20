@@ -33,5 +33,8 @@ Thumbs.db
 # Database
 *.sqlite3
 
+# Celery Beat's local schedule state (created wherever `celery beat` runs)
+celerybeat-schedule*
+
 # Personal notes — not part of the public repo
 private/
