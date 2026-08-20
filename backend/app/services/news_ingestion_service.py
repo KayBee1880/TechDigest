@@ -1,3 +1,5 @@
+from typing import Callable
+
 from sqlalchemy.exc import IntegrityError
 
 from app.clients.base import NormalizedArticle
@@ -15,7 +17,11 @@ class NewsIngestionService:
         "rss": RSSFeedClient(),
     }
 
-    def ingest(self, source: ArticleSource) -> IngestionJob:
+    def ingest(
+        self,
+        source: ArticleSource,
+        on_created: Callable[[Article], None] | None = None,
+    ) -> IngestionJob:
         job = IngestionJob(source_id=source.id, status="running")
         db.session.add(job)
         db.session.commit()
@@ -24,10 +30,15 @@ class NewsIngestionService:
             client = self.CLIENTS[source.source_type]
             raw_articles = client.fetch(source.url)
             job.articles_found = len(raw_articles)
-            job.articles_created = sum(
-                self._create_article(source, raw_article)
-                for raw_article in raw_articles
-            )
+
+            created_count = 0
+            for raw_article in raw_articles:
+                article = self._create_article(source, raw_article)
+                if article is not None:
+                    created_count += 1
+                    if on_created is not None:
+                        on_created(article)
+            job.articles_created = created_count
             job.status = "completed"
         except Exception as exc:
             job.status = "failed"
@@ -40,11 +51,11 @@ class NewsIngestionService:
 
     def _create_article(
         self, source: ArticleSource, raw_article: NormalizedArticle
-    ) -> bool:
+    ) -> Article | None:
         canonical_url = canonicalize_url(raw_article.url)
 
         if Article.query.filter_by(canonical_url=canonical_url).first() is not None:
-            return False
+            return None
 
         article = Article(
             source_id=source.id,
@@ -59,7 +70,7 @@ class NewsIngestionService:
 
         try:
             db.session.commit()
-            return True
+            return article
         except IntegrityError:
             db.session.rollback()
-            return False
+            return None

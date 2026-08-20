@@ -2,6 +2,7 @@ import os
 
 from flask import Flask
 
+from app.celery_app import celery_init_app
 from app.config import config
 from app.extensions import db, migrate
 
@@ -14,8 +15,9 @@ def create_app(config_name=None):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    celery_init_app(app)
 
-    from app import models
+    from app import models, tasks  # noqa: F401
 
     from app.api.health import health_bp
 
