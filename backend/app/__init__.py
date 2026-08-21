@@ -19,8 +19,10 @@ def create_app(config_name=None):
 
     from app import models, tasks  # noqa: F401
 
+    from app.api.articles import articles_bp
     from app.api.health import health_bp
 
     app.register_blueprint(health_bp)
+    app.register_blueprint(articles_bp)
 
     return app
