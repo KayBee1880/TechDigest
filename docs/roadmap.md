@@ -30,11 +30,11 @@ Each milestone should be its own set of commits/PRs, not one giant drop. Order m
 - Worker tests (mocked AI calls) — 28 tests total.
 - Verified end-to-end against the real stack (not just mocked tests): real ingestion, real Celery hand-off between `backend` and `worker`, real Ollama summarization, Beat firing on schedule. Found and fixed a real concurrency mismatch (worker defaulted to 12 concurrent Ollama calls; capped at 2) during that run.
 
-## M4 — REST API
-- `ArticleService`, `SearchService`, `BookmarkService`, `UserService`.
-- Endpoints: list/filter/search articles, article detail, auth (JWT), bookmarks CRUD.
-- Marshmallow/Pydantic schemas for request/response validation.
-- API integration tests.
+## M4 — REST API — done
+- `ArticleService`, `BookmarkService`, `UserService`. No separate `SearchService` — search (Postgres `ILIKE` on title) is a single filter inside `ArticleService.list_articles`, not enough distinct logic yet to justify its own service class; revisit if search logic grows.
+- Endpoints: list/filter/search articles, article detail, auth (JWT register/login), bookmarks CRUD, all behind a `login_required` decorator where relevant.
+- Marshmallow schemas for request/response validation (chosen over Pydantic).
+- API integration tests, plus service-level unit tests — 65 tests total.
 
 ## M5 — Frontend
 - Vite + React + TypeScript + Tailwind scaffold.
