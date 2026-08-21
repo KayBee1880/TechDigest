@@ -1,10 +1,30 @@
-from flask import Blueprint, jsonify, request
+from functools import wraps
+
+from flask import Blueprint, g, jsonify, request
 from marshmallow import ValidationError
 
 from app.schemas.user_schema import LoginSchema, RegisterSchema, UserSchema
 from app.services.user_service import UserService
 
 auth_bp = Blueprint("auth", __name__)
+
+
+def login_required(view):
+    @wraps(view)
+    def wrapped_view(*args, **kwargs):
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return jsonify(error="Missing or malformed Authorization header"), 401
+
+        token = auth_header.removeprefix("Bearer ")
+        user_id = UserService.decode_token(token)
+        if user_id is None:
+            return jsonify(error="Invalid or expired token"), 401
+
+        g.current_user_id = user_id
+        return view(*args, **kwargs)
+
+    return wrapped_view
 
 user_schema = UserSchema()
 register_schema = RegisterSchema()
