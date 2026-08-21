@@ -22,12 +22,13 @@ Each milestone should be its own set of commits/PRs, not one giant drop. Order m
 - A manual script (`scripts/ingest_articles.py`) to run ingestion on demand.
 - Tests with mocked HTTP responses (no live network calls in CI).
 
-## M3 — Asynchronous processing
-- Redis + Celery wired into Docker Compose.
-- Move ingestion to a scheduled Celery Beat task.
+## M3 — Asynchronous processing — done
+- Redis + Celery wired into Docker Compose (`worker` + `beat` services, sharing `backend`'s Dockerfile).
+- Ingestion moved to a scheduled Celery Beat task (`ingest_all_sources_task`, every 15 min).
 - `SummarizationService` + `AIProviderClient` (Ollama default, swappable).
-- Retry/backoff, `processing_failures` tracking, idempotent task design.
-- Worker tests (mocked AI calls).
+- Retry/backoff, `processing_failures` tracking, idempotent task design (`summarize_article_task`).
+- Worker tests (mocked AI calls) — 28 tests total.
+- Verified end-to-end against the real stack (not just mocked tests): real ingestion, real Celery hand-off between `backend` and `worker`, real Ollama summarization, Beat firing on schedule. Found and fixed a real concurrency mismatch (worker defaulted to 12 concurrent Ollama calls; capped at 2) during that run.
 
 ## M4 — REST API
 - `ArticleService`, `SearchService`, `BookmarkService`, `UserService`.

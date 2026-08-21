@@ -7,7 +7,7 @@
 [![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)](backend/requirements.txt)
 [![Flask](https://img.shields.io/badge/Flask-3.1-000000?logo=flask&logoColor=white)](backend/requirements.txt)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](docker-compose.yml)
-[![Status](https://img.shields.io/badge/status-backend%20%26%20ingestion%20complete-yellow)](#roadmap)
+[![Status](https://img.shields.io/badge/status-async%20processing%20complete-yellow)](#roadmap)
 
 </div>
 
@@ -27,15 +27,16 @@ This is built in deliberate, documented milestones, not as fast as possible — 
 - **Naive approach, documented, then the fix.** Every non-trivial design decision in [docs/architecture.md](docs/architecture.md) is written as: the simple version, why it breaks, and the actual fix — not just the end result presented as obvious.
 - **Database-enforced guarantees, not just application checks.** Article deduplication has a fast application-side check, but the real guarantee is a database-level unique constraint with proper race-condition handling — verified with a test that simulates the race, not just trusted.
 - **Deliberate scope boundaries.** Features explicitly out of scope for now (recommendations, multi-language, notifications) are documented as decisions in [docs/project-definition.md](docs/project-definition.md), not silently absent.
-- **Tests where they earn their keep.** 17 tests, zero live network calls — all external HTTP is mocked — with the trickier logic (dedup, race handling) actually exercised against a real Postgres test database, not faked.
+- **Tests where they earn their keep.** 28 tests, zero live network calls — all external HTTP (including the AI provider) is mocked — with the trickier logic (dedup, race handling, retry/backoff, task idempotency) actually exercised against a real Postgres test database, not faked.
 
 ## What's actually working right now
 
 - A Flask REST API (app factory, environment-based config, health check)
 - A seven-table PostgreSQL schema (articles, sources, summaries, bookmarks, users, ingestion jobs, processing failures) with Alembic migrations applied
 - An ingestion pipeline pulling real articles from the Hacker News API and three RSS feeds (TechCrunch, Ars Technica, The Verge), normalized into one common shape and deduplicated by canonical URL and title hash
-- 17 automated tests (`pytest`), all external HTTP mocked
-- Local Postgres + Redis via Docker Compose
+- Asynchronous processing: a Celery worker + Beat scheduler (ingestion runs on a 15-minute schedule) with an AI-generated summary produced per article via Ollama, retried with exponential backoff on failure and tracked in `processing_failures`
+- 28 automated tests (`pytest`), all external HTTP mocked
+- A full local dev stack (Postgres, Redis, backend, worker, beat, Ollama) via one `docker compose up`
 
 ## Architecture
 
@@ -45,6 +46,11 @@ This is built in deliberate, documented milestones, not as fast as possible — 
 flowchart LR
     Sources["HN API + RSS feeds"] --> Ingest["Ingestion Service"]
     Ingest --> PG[("PostgreSQL")]
+    Ingest -->|enqueue| Redis[("Redis")]
+    Beat["Celery Beat<br/>(15 min schedule)"] --> Redis
+    Redis --> Worker["Celery Worker"]
+    Worker --> AI["Ollama"]
+    Worker --> PG
 ```
 
 **Target state** — the full system this is building toward:
@@ -67,12 +73,12 @@ Full data flow, failure handling, and the deduplication strategy: [docs/architec
 | Backend | Flask, SQLAlchemy, Alembic | App factory pattern for clean test isolation; migrations instead of hand-run SQL |
 | Database | PostgreSQL | Real foreign keys, unique constraints, and transactions — the data is genuinely relational |
 | Ingestion | `requests`, `feedparser` | Standard, well-tested HTTP and feed-parsing libraries over hand-rolled parsing |
+| Async processing | Celery + Redis, `AIProviderClient` (Ollama default, swappable) | Decouples slow/unreliable ingestion and AI calls from the request-response cycle |
 | Testing | Pytest, `unittest.mock` | Full suite runs with zero live network calls |
-| Local dev | Docker Compose | One-command Postgres + Redis for local development |
+| Local dev | Docker Compose | One-command Postgres + Redis + backend + worker + beat + Ollama for local development |
 
 | Layer | Planned | Milestone |
 |---|---|---|
-| Async processing | Celery + Redis, an AI provider client (Ollama default, swappable) | M3 — in progress |
 | Validation | Marshmallow | M4 |
 | Frontend | React, TypeScript, Tailwind, TanStack Query, Vitest | M5 |
 | CI/CD | GitHub Actions | M6 |
@@ -83,8 +89,8 @@ Full data flow, failure handling, and the deduplication strategy: [docs/architec
 - [x] M0 — Architecture & repo skeleton
 - [x] M1 — Backend foundation
 - [x] M2 — Article ingestion pipeline
-- [ ] M3 — Asynchronous processing *(current)*
-- [ ] M4 — REST API
+- [x] M3 — Asynchronous processing
+- [ ] M4 — REST API *(current)*
 - [ ] M5 — Frontend
 - [ ] M6 — CI/CD
 - [ ] M7 — Deployment
@@ -142,6 +148,15 @@ python -m scripts.ingest_articles
 Run the test suite:
 ```bash
 pytest
+```
+
+Or run the whole stack in Docker (API, worker, beat, Postgres, Redis, Ollama) instead of the host-venv steps above — set `DATABASE_URL`/`TEST_DATABASE_URL` in `.env` to use `db:5432` (not `localhost:5433`) first:
+```bash
+docker compose up -d
+docker compose exec backend flask db upgrade
+docker compose exec backend python -m scripts.seed_sources
+docker compose exec ollama ollama pull llama3.2   # one-time, ~2GB
+docker compose exec backend python -m scripts.ingest_articles
 ```
 
 ## Documentation
