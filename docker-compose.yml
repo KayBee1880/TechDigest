@@ -2,6 +2,15 @@
 # (backend/Dockerfile) since the API and worker run the same codebase.
 # frontend service is added in M5 once its own Dockerfile exists — see docs/roadmap.md.
 
+# Always container-correct, regardless of whichever mode .env's own
+# DATABASE_URL/TEST_DATABASE_URL currently happen to be set to for host use
+# (Flask/pytest run directly on the host need "localhost:5433" instead) —
+# environment: below overrides env_file: for the same key, so backend/worker/
+# beat never need .env flipped back and forth for them to work.
+x-db-env: &db-env
+  DATABASE_URL: postgresql://techdigest:techdigest@db:5432/techdigest
+  TEST_DATABASE_URL: postgresql://techdigest:techdigest@db:5432/techdigest_test
+
 services:
   db:
     image: postgres:16-alpine
@@ -36,6 +45,8 @@ services:
       - "5000:5000"
     env_file:
       - .env
+    environment:
+      <<: *db-env
     volumes:
       - ./backend:/app
     depends_on:
@@ -49,6 +60,8 @@ services:
     command: celery -A celery_worker.celery_app worker --loglevel=info --concurrency=2
     env_file:
       - .env
+    environment:
+      <<: *db-env
     volumes:
       - ./backend:/app
     depends_on:
@@ -64,6 +77,8 @@ services:
     command: celery -A celery_worker.celery_app beat --loglevel=info
     env_file:
       - .env
+    environment:
+      <<: *db-env
     volumes:
       - ./backend:/app
     depends_on:
