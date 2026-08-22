@@ -36,6 +36,11 @@ def summarize_article_task(self, article_id: int) -> None:
     if article is None or article.summary_status == "completed":
         return
 
+    if not article.raw_content:
+        article.summary_status = "unavailable"
+        db.session.commit()
+        return
+
     try:
         summary = SummarizationService().summarize(article)
         summary.retry_count = self.request.retries
