@@ -14,7 +14,7 @@ export interface Article {
   url: string
   category: string | null
   published_at: string
-  summary_status: 'pending' | 'completed' | 'failed'
+  summary_status: 'pending' | 'completed' | 'failed' | 'unavailable'
   source: ArticleSource
   summary: Summary | null
 }
