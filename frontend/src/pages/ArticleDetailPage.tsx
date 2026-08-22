@@ -1,7 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
 import { useArticle } from '../api/articles'
 import { useCreateBookmark } from '../api/bookmarks'
-import { useAuth } from '../auth/AuthContext'
+import { useAuth } from '../auth/useAuth'
 import type { Article } from '../api/types'
 
 const NO_SUMMARY_MESSAGE: Record<Exclude<Article['summary_status'], 'completed'>, string> = {
