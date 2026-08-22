@@ -36,12 +36,14 @@ Each milestone should be its own set of commits/PRs, not one giant drop. Order m
 - Marshmallow schemas for request/response validation (chosen over Pydantic).
 - API integration tests, plus service-level unit tests — 65 tests total.
 
-## M5 — Frontend
-- Vite + React + TypeScript + Tailwind scaffold.
-- React Query API layer, React Router routes.
-- Feed, article detail, search/filter UI, saved articles, auth screens.
-- Loading/empty/error states for every data-fetching view.
-- Component + hook tests (Vitest + RTL).
+## M5 — Frontend — done
+- Vite + React + TypeScript + Tailwind CSS v4 scaffold.
+- React Query API layer (`src/api/`, typed against the backend's Marshmallow schemas), React Router routes.
+- Feed (search + pagination), article detail (with bookmarking), saved articles, login/register screens.
+- Loading/empty/error states throughout every data-fetching view.
+- Component + hook tests (Vitest + React Testing Library) — `pool: 'threads'` required on this machine (Windows-specific worker-spawning issue with Vitest's default pool; see `private/command-reference.md`).
+- CORS enabled on the backend — a real gap the first live frontend request surfaced (no backend test goes through an actual browser, so 65 green tests gave zero signal).
+- Found and fixed a real content-gap bug via actual use of the app: articles with no body text (mostly Hacker News link-posts) were getting nonsense AI "summaries" from title-only input; now correctly marked `summary_status="unavailable"`. Affected 90 of the articles ingested so far — see `private/interview-notes.md` for why fetching real article text is now a higher-priority future improvement than it first looked.
 
 ## M6 — CI/CD
 - `backend-ci.yml`, `frontend-ci.yml`, `docker-build.yml` GitHub Actions.
