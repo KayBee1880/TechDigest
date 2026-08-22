@@ -20,7 +20,6 @@ def create_app(config_name=None):
     celery_init_app(app)
 
     from app import models, tasks  # noqa: F401
-
     from app.api.articles import articles_bp
     from app.api.auth import auth_bp
     from app.api.bookmarks import bookmarks_bp

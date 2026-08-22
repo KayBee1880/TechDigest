@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useBookmarks, useDeleteBookmark } from '../api/bookmarks'
-import { useAuth } from '../auth/AuthContext'
+import { useAuth } from '../auth/useAuth'
 
 export function SavedPage() {
   const { token } = useAuth()

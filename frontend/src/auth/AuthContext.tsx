@@ -1,17 +1,6 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import type { User } from '../api/types'
-
-const TOKEN_KEY = 'techdigest_token'
-const USER_KEY = 'techdigest_user'
-
-interface AuthContextValue {
-  user: User | null
-  token: string | null
-  setSession: (user: User, token: string) => void
-  clearSession: () => void
-}
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined)
+import { AuthContext, TOKEN_KEY, USER_KEY } from './auth-context'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY))
@@ -41,10 +30,3 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
-}

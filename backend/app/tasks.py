@@ -60,4 +60,4 @@ def summarize_article_task(self, article_id: int) -> None:
             db.session.commit()
             return
 
-        raise self.retry(exc=exc, countdown=2**self.request.retries * 10)
+        raise self.retry(exc=exc, countdown=2**self.request.retries * 10) from exc

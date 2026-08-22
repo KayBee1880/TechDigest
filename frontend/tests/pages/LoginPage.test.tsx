@@ -13,7 +13,7 @@ vi.mock('../../src/api/auth', () => ({
   useLogin: () => useLoginMock(),
 }))
 
-vi.mock('../../src/auth/AuthContext', () => ({
+vi.mock('../../src/auth/useAuth', () => ({
   useAuth: () => ({ setSession: setSessionMock }),
 }))
 
