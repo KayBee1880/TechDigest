@@ -9,3 +9,4 @@ celery[redis]==5.4.0
 gunicorn==23.0.0
 marshmallow==3.23.2
 PyJWT==2.13.0
+Flask-Cors==5.0.0

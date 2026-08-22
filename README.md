@@ -7,7 +7,7 @@
 [![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)](backend/requirements.txt)
 [![Flask](https://img.shields.io/badge/Flask-3.1-000000?logo=flask&logoColor=white)](backend/requirements.txt)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](docker-compose.yml)
-[![Status](https://img.shields.io/badge/status-REST%20API%20complete-yellow)](#roadmap)
+[![Status](https://img.shields.io/badge/status-frontend%20complete-yellow)](#roadmap)
 
 </div>
 
@@ -27,7 +27,7 @@ This is built in deliberate, documented milestones, not as fast as possible — 
 - **Naive approach, documented, then the fix.** Every non-trivial design decision in [docs/architecture.md](docs/architecture.md) is written as: the simple version, why it breaks, and the actual fix — not just the end result presented as obvious.
 - **Database-enforced guarantees, not just application checks.** Article deduplication has a fast application-side check, but the real guarantee is a database-level unique constraint with proper race-condition handling — verified with a test that simulates the race, not just trusted.
 - **Deliberate scope boundaries.** Features explicitly out of scope for now (recommendations, multi-language, notifications) are documented as decisions in [docs/project-definition.md](docs/project-definition.md), not silently absent.
-- **Tests where they earn their keep.** 65 tests, zero live network calls — all external HTTP (including the AI provider) is mocked — with the trickier logic (dedup, race handling, retry/backoff, task idempotency, per-user bookmark scoping) actually exercised against a real Postgres test database, not faked.
+- **Tests where they earn their keep.** 65 backend tests (`pytest`) plus 9 frontend tests (Vitest + React Testing Library), zero live network calls anywhere — all external HTTP (including the AI provider) is mocked — with the trickier backend logic (dedup, race handling, retry/backoff, task idempotency, per-user bookmark scoping) actually exercised against a real Postgres test database, not faked.
 
 ## What's actually working right now
 
@@ -36,12 +36,13 @@ This is built in deliberate, documented milestones, not as fast as possible — 
 - An ingestion pipeline pulling real articles from the Hacker News API and three RSS feeds (TechCrunch, Ars Technica, The Verge), normalized into one common shape and deduplicated by canonical URL and title hash
 - Asynchronous processing: a Celery worker + Beat scheduler (ingestion runs on a 15-minute schedule) with an AI-generated summary produced per article via Ollama, retried with exponential backoff on failure and tracked in `processing_failures`
 - REST API: article listing with pagination/source filter/keyword search, article detail, JWT-based registration/login, and bookmarks CRUD scoped per user — all request/response validation and serialization via Marshmallow
-- 65 automated tests (`pytest`), all external HTTP mocked
+- A React + TypeScript frontend: feed (search + pagination), article detail with bookmarking, saved articles, login/register — talking to the real API via React Query, styled with Tailwind CSS
+- 65 backend tests (`pytest`) + 9 frontend tests (Vitest + RTL), all external HTTP mocked
 - A full local dev stack (Postgres, Redis, backend, worker, beat, Ollama) via one `docker compose up`
 
 ## Architecture
 
-**Current state** — what's actually running:
+**Current state** — what's actually running, matching the target state below in full:
 
 ```mermaid
 flowchart LR
@@ -52,15 +53,6 @@ flowchart LR
     Redis --> Worker["Celery Worker"]
     Worker --> AI["Ollama"]
     Worker --> PG
-```
-
-**Target state** — the full system this is building toward:
-
-```mermaid
-flowchart LR
-    Sources["News sources"] --> Worker["Celery worker<br/>(ingest + summarize)"]
-    Worker --> PG[("PostgreSQL")]
-    Worker --> AI["AI provider"]
     PG --> API["Flask REST API"]
     API --> FE["React frontend"]
 ```
@@ -78,10 +70,11 @@ Full data flow, failure handling, and the deduplication strategy: [docs/architec
 | Testing | Pytest, `unittest.mock` | Full suite runs with zero live network calls |
 | Local dev | Docker Compose | One-command Postgres + Redis + backend + worker + beat + Ollama for local development |
 | API validation | Marshmallow, PyJWT | Request/response schemas; JWT for stateless auth |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS v4, TanStack Query, React Router | Typed API client generated to match the backend's own Marshmallow schemas |
+| Frontend testing | Vitest, React Testing Library | Query components the way a user would, not by implementation detail |
 
 | Layer | Planned | Milestone |
 |---|---|---|
-| Frontend | React, TypeScript, Tailwind, TanStack Query, Vitest | M5 |
 | CI/CD | GitHub Actions | M6 |
 | Deployment | Netlify/Vercel + Render/Railway + Neon + Upstash | M7 |
 
@@ -92,8 +85,8 @@ Full data flow, failure handling, and the deduplication strategy: [docs/architec
 - [x] M2 — Article ingestion pipeline
 - [x] M3 — Asynchronous processing
 - [x] M4 — REST API
-- [ ] M5 — Frontend *(current)*
-- [ ] M6 — CI/CD
+- [x] M5 — Frontend
+- [ ] M6 — CI/CD *(current)*
 - [ ] M7 — Deployment
 - [ ] M8 — Documentation & polish
 
@@ -113,7 +106,13 @@ techdigest/
     migrations/   Alembic migrations
     scripts/      Manual seed/ingestion scripts
     tests/        Pytest suite, mirrors app/ structure
-  frontend/     React + TypeScript SPA (not yet built)
+  frontend/     React + TypeScript SPA
+    src/
+      api/        Fetch wrapper, types, and React Query hooks
+      auth/       Client-side session state (JWT in localStorage)
+      components/ Shared UI (nav/layout)
+      pages/      One component per route
+    tests/        Vitest + RTL suite, mirrors src/ structure
   docs/         Architecture, API, schema, deployment, testing docs
   .github/      CI workflows, issue/PR templates (not yet built)
 ```
@@ -158,6 +157,19 @@ docker compose exec backend flask db upgrade
 docker compose exec backend python -m scripts.seed_sources
 docker compose exec ollama ollama pull llama3.2   # one-time, ~2GB
 docker compose exec backend python -m scripts.ingest_articles
+```
+
+Set up the frontend (needs the backend running via one of the two methods above first):
+```bash
+cd frontend
+npm install
+npm run dev       # -> http://localhost:5173
+```
+
+Run the frontend test suite:
+```bash
+cd frontend
+npx vitest run
 ```
 
 ## Documentation

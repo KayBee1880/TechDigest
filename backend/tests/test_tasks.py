@@ -20,14 +20,14 @@ def _make_source(name="Test Source", is_active=True):
     return source
 
 
-def _make_article(source, summary_status="pending"):
+def _make_article(source, summary_status="pending", raw_content="body"):
     article = Article(
         source_id=source.id,
         title="A Title",
         url="https://example.com/a",
         canonical_url="https://example.com/a",
         title_hash="x" * 64,
-        raw_content="body",
+        raw_content=raw_content,
         published_at=utc_now(),
         summary_status=summary_status,
     )
@@ -70,6 +70,17 @@ class TestSummarizeArticleTask:
         summarize_article_task.apply(args=[article.id])
 
         mock_service_cls.assert_not_called()
+
+    @patch("app.tasks.SummarizationService")
+    def test_marks_unavailable_when_no_raw_content(self, mock_service_cls, app):
+        source = _make_source()
+        article = _make_article(source, raw_content="")
+
+        summarize_article_task.apply(args=[article.id])
+
+        mock_service_cls.assert_not_called()
+        db.session.refresh(article)
+        assert article.summary_status == "unavailable"
 
     @patch("app.tasks.SummarizationService")
     def test_records_failure_and_marks_article_failed_once_retries_exhausted(
