@@ -7,7 +7,7 @@
 [![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)](backend/requirements.txt)
 [![Flask](https://img.shields.io/badge/Flask-3.1-000000?logo=flask&logoColor=white)](backend/requirements.txt)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](docker-compose.yml)
-[![Status](https://img.shields.io/badge/status-frontend%20complete-yellow)](#roadmap)
+[![Status](https://img.shields.io/badge/status-CI%2FCD%20complete-yellow)](#roadmap)
 
 </div>
 
@@ -39,6 +39,7 @@ This is built in deliberate, documented milestones, not as fast as possible — 
 - A React + TypeScript frontend: feed (search + pagination), article detail with bookmarking, saved articles, login/register — talking to the real API via React Query, styled with Tailwind CSS
 - 65 backend tests (`pytest`) + 9 frontend tests (Vitest + RTL), all external HTTP mocked
 - A full local dev stack (Postgres, Redis, backend, worker, beat, Ollama) via one `docker compose up`
+- CI on every PR (GitHub Actions): Ruff + pytest against a real Postgres service container, ESLint + `tsc` + Vitest, and a Docker image build check
 
 ## Architecture
 
@@ -72,10 +73,10 @@ Full data flow, failure handling, and the deduplication strategy: [docs/architec
 | API validation | Marshmallow, PyJWT | Request/response schemas; JWT for stateless auth |
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS v4, TanStack Query, React Router | Typed API client generated to match the backend's own Marshmallow schemas |
 | Frontend testing | Vitest, React Testing Library | Query components the way a user would, not by implementation detail |
+| CI/CD | GitHub Actions (Ruff, pytest, ESLint, `tsc`, Vitest, Docker build) | Every PR runs lint + tests + a real container build before merge |
 
 | Layer | Planned | Milestone |
 |---|---|---|
-| CI/CD | GitHub Actions | M6 |
 | Deployment | Netlify/Vercel + Render/Railway + Neon + Upstash | M7 |
 
 ## Roadmap
@@ -86,7 +87,7 @@ Full data flow, failure handling, and the deduplication strategy: [docs/architec
 - [x] M3 — Asynchronous processing
 - [x] M4 — REST API
 - [x] M5 — Frontend
-- [ ] M6 — CI/CD *(current)*
+- [x] M6 — CI/CD
 - [ ] M7 — Deployment
 - [ ] M8 — Documentation & polish
 

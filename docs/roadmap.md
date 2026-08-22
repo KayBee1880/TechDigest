@@ -45,9 +45,11 @@ Each milestone should be its own set of commits/PRs, not one giant drop. Order m
 - CORS enabled on the backend — a real gap the first live frontend request surfaced (no backend test goes through an actual browser, so 65 green tests gave zero signal).
 - Found and fixed a real content-gap bug via actual use of the app: articles with no body text (mostly Hacker News link-posts) were getting nonsense AI "summaries" from title-only input; now correctly marked `summary_status="unavailable"`. Affected 90 of the articles ingested so far — see `private/interview-notes.md` for why fetching real article text is now a higher-priority future improvement than it first looked.
 
-## M6 — CI/CD
+## M6 — CI/CD ✅
 - `backend-ci.yml`, `frontend-ci.yml`, `docker-build.yml` GitHub Actions.
-- Branch protection expectations documented (PRs required, checks must pass).
+- Ruff added to the backend (`pyproject.toml`) — first lint run caught real issues (unsorted imports, an outdated `typing.Callable` import, a missing exception chain in `app/tasks.py`).
+- Branch protection expectations: PRs required against `main`, all three checks (Backend CI, Frontend CI, Docker Build) must pass before merge — enforced by workflow design (`pull_request` trigger) even before GitHub's branch protection rules are turned on in repo settings.
+- Real gap CI caught that local checks missed: the PR's first run had two failures — an ESLint `react-refresh/only-export-components` error (`AuthContext.tsx` exported both a component and a hook; fixed by moving `useAuth` into its own file) and, once that was fixed, a TypeScript error in `articles.ts` that the failed lint step had been blocking from ever running. See `private/interview-notes.md`.
 
 ## M7 — Deployment
 - Frontend on Netlify/Vercel free tier.
