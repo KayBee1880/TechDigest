@@ -1,6 +1,7 @@
 import os
 
 from flask import Flask
+from flask_cors import CORS
 
 from app.celery_app import celery_init_app
 from app.config import config
@@ -13,6 +14,7 @@ def create_app(config_name=None):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
 
+    CORS(app, origins=app.config["CORS_ORIGINS"])
     db.init_app(app)
     migrate.init_app(app, db)
     celery_init_app(app)
