@@ -60,6 +60,9 @@ Each milestone should be its own set of commits/PRs, not one giant drop. Order m
 - Real UX bugs caught by using the shipped features, not by tests: "Save for later" gave no feedback on an already-saved article (fixed by checking real bookmark state instead of trusting local mutation state); the note field stayed open indefinitely after saving; the Saved page's "Remove" button disabled every saved article while any one delete was in flight (one shared mutation reused across a list instead of scoped per item, caught via DevTools network throttling). Full write-ups in `private/interview-notes.md`.
 
 ## M7 — Deployment
+- **Production AI provider (done):** Ollama can't run on a free-tier host (a persistent, resource-heavy local process), but the deployed app still needs to keep summarizing/classifying new articles as they're ingested. Added `OpenRouterClient`, a second `AIProviderClient` implementation using OpenRouter's free-tier models — a config change (`AI_PROVIDER=openrouter`), not an application-code change, exercising the swappable-provider abstraction for the first time with a real second provider. Local dev keeps using Ollama.
+  - Extracted the prompt-building and JSON-parse-with-fallback logic (previously Ollama-specific) into shared functions in `ai_provider.py`, now used by both clients — the second provider needing identical behavior is what justified the refactor.
+  - Real finding: the first free-tier model name picked from memory had been retired by OpenRouter; found a working one (`nvidia/nemotron-nano-9b-v2:free`) by querying OpenRouter's own live model catalog instead of guessing again, then verified it against the same real articles already validated against Ollama's classification — identical categories, confirmed deterministic. See `private/interview-notes.md`.
 - Frontend on Netlify/Vercel free tier.
 - Backend + worker on Render/Railway free tier.
 - Neon Postgres + Upstash Redis free tiers.
