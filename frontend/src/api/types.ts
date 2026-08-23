@@ -35,6 +35,7 @@ export interface User {
 
 export interface Bookmark {
   id: number
+  notes: string | null
   created_at: string
   article: Article
 }
