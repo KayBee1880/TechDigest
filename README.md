@@ -7,7 +7,7 @@
 [![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)](backend/requirements.txt)
 [![Flask](https://img.shields.io/badge/Flask-3.1-000000?logo=flask&logoColor=white)](backend/requirements.txt)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](docker-compose.yml)
-[![Status](https://img.shields.io/badge/status-CI%2FCD%20complete-yellow)](#roadmap)
+[![Status](https://img.shields.io/badge/status-redesign%20complete-yellow)](#roadmap)
 
 </div>
 
@@ -27,7 +27,7 @@ This is built in deliberate, documented milestones, not as fast as possible — 
 - **Naive approach, documented, then the fix.** Every non-trivial design decision in [docs/architecture.md](docs/architecture.md) is written as: the simple version, why it breaks, and the actual fix — not just the end result presented as obvious.
 - **Database-enforced guarantees, not just application checks.** Article deduplication has a fast application-side check, but the real guarantee is a database-level unique constraint with proper race-condition handling — verified with a test that simulates the race, not just trusted.
 - **Deliberate scope boundaries.** Features explicitly out of scope for now (recommendations, multi-language, notifications) are documented as decisions in [docs/project-definition.md](docs/project-definition.md), not silently absent.
-- **Tests where they earn their keep.** 65 backend tests (`pytest`) plus 9 frontend tests (Vitest + React Testing Library), zero live network calls anywhere — all external HTTP (including the AI provider) is mocked — with the trickier backend logic (dedup, race handling, retry/backoff, task idempotency, per-user bookmark scoping) actually exercised against a real Postgres test database, not faked.
+- **Tests where they earn their keep.** 77 backend tests (`pytest`) plus 9 frontend tests (Vitest + React Testing Library), zero live network calls anywhere — all external HTTP (including the AI provider) is mocked — with the trickier backend logic (dedup, race handling, retry/backoff, task idempotency, per-user bookmark scoping) actually exercised against a real Postgres test database, not faked.
 
 ## What's actually working right now
 
@@ -36,9 +36,10 @@ This is built in deliberate, documented milestones, not as fast as possible — 
 - An ingestion pipeline pulling real articles from the Hacker News API and three RSS feeds (TechCrunch, Ars Technica, The Verge), normalized into one common shape and deduplicated by canonical URL and title hash
 - Asynchronous processing: a Celery worker + Beat scheduler (ingestion runs on a 15-minute schedule) with an AI-generated summary produced per article via Ollama, retried with exponential backoff on failure and tracked in `processing_failures`
 - AI-based category classification: each article is classified into one of nine CS-field categories in the same Ollama call that generates its summary, filterable via the API
-- REST API: article listing with pagination/source/category filter/keyword search, article detail, JWT-based registration/login, and bookmarks CRUD scoped per user — all request/response validation and serialization via Marshmallow
-- A React + TypeScript frontend: feed (search + pagination), article detail with bookmarking, saved articles, login/register — talking to the real API via React Query, styled with Tailwind CSS
-- 71 backend tests (`pytest`) + 9 frontend tests (Vitest + RTL), all external HTTP mocked
+- REST API: article listing with pagination/source/category filter/keyword search, article detail, JWT-based registration/login, and bookmarks CRUD (with personal notes) scoped per user — all request/response validation and serialization via Marshmallow
+- A React + TypeScript frontend with an editorial visual design and a light/dark theme toggle: feed (search + category filter + pagination), article detail with bookmarking and inline notes, saved articles, login/register — talking to the real API via React Query, styled with Tailwind CSS
+- The feed only ever shows articles with a completed AI summary and category — nothing half-processed is ever shown as if it were finished
+- 77 backend tests (`pytest`) + 9 frontend tests (Vitest + RTL), all external HTTP mocked
 - A full local dev stack (Postgres, Redis, backend, worker, beat, Ollama) via one `docker compose up`
 - CI on every PR (GitHub Actions): Ruff + pytest against a real Postgres service container, ESLint + `tsc` + Vitest, and a Docker image build check
 
@@ -89,6 +90,7 @@ Full data flow, failure handling, and the deduplication strategy: [docs/architec
 - [x] M4 — REST API
 - [x] M5 — Frontend
 - [x] M6 — CI/CD
+- [x] Visual redesign & categories
 - [ ] M7 — Deployment
 - [ ] M8 — Documentation & polish
 
