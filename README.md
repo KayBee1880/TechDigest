@@ -35,9 +35,10 @@ This is built in deliberate, documented milestones, not as fast as possible — 
 - A seven-table PostgreSQL schema (articles, sources, summaries, bookmarks, users, ingestion jobs, processing failures) with Alembic migrations applied
 - An ingestion pipeline pulling real articles from the Hacker News API and three RSS feeds (TechCrunch, Ars Technica, The Verge), normalized into one common shape and deduplicated by canonical URL and title hash
 - Asynchronous processing: a Celery worker + Beat scheduler (ingestion runs on a 15-minute schedule) with an AI-generated summary produced per article via Ollama, retried with exponential backoff on failure and tracked in `processing_failures`
-- REST API: article listing with pagination/source filter/keyword search, article detail, JWT-based registration/login, and bookmarks CRUD scoped per user — all request/response validation and serialization via Marshmallow
+- AI-based category classification: each article is classified into one of nine CS-field categories in the same Ollama call that generates its summary, filterable via the API
+- REST API: article listing with pagination/source/category filter/keyword search, article detail, JWT-based registration/login, and bookmarks CRUD scoped per user — all request/response validation and serialization via Marshmallow
 - A React + TypeScript frontend: feed (search + pagination), article detail with bookmarking, saved articles, login/register — talking to the real API via React Query, styled with Tailwind CSS
-- 65 backend tests (`pytest`) + 9 frontend tests (Vitest + RTL), all external HTTP mocked
+- 71 backend tests (`pytest`) + 9 frontend tests (Vitest + RTL), all external HTTP mocked
 - A full local dev stack (Postgres, Redis, backend, worker, beat, Ollama) via one `docker compose up`
 - CI on every PR (GitHub Actions): Ruff + pytest against a real Postgres service container, ESLint + `tsc` + Vitest, and a Docker image build check
 

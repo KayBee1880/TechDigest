@@ -51,6 +51,11 @@ Each milestone should be its own set of commits/PRs, not one giant drop. Order m
 - Branch protection expectations: PRs required against `main`, all three checks (Backend CI, Frontend CI, Docker Build) must pass before merge — enforced by workflow design (`pull_request` trigger) even before GitHub's branch protection rules are turned on in repo settings.
 - Real gap CI caught that local checks missed: the PR's first run had two failures — an ESLint `react-refresh/only-export-components` error (`AuthContext.tsx` exported both a component and a hook; fixed by moving `useAuth` into its own file) and, once that was fixed, a TypeScript error in `articles.ts` that the failed lint step had been blocking from ever running. See `private/interview-notes.md`.
 
+## Visual redesign & categories (between M6 and M7)
+- **Backend (done):** AI-based category classification, extending the existing summarization pipeline to also classify each article into one of nine CS-field categories in the same Ollama call. `GET /api/articles?category=X` filter, `GET /api/articles/categories` taxonomy endpoint. All 136 existing articles backfilled against the real Ollama instance.
+- Two real findings along the way: classification was non-deterministic (Ollama's default sampling temperature, not the prompt — fixed with `temperature: 0`), and the backfill script had no resilience to a single slow request (crashed partway through a real run; fixed with per-article error handling). See `private/interview-notes.md`.
+- **Frontend (pending):** clean editorial/news-feed visual redesign with a light/dark theme toggle, plus a category filter UI wired to the endpoints above.
+
 ## M7 — Deployment
 - Frontend on Netlify/Vercel free tier.
 - Backend + worker on Render/Railway free tier.
