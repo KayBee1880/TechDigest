@@ -1,4 +1,5 @@
 from app.clients.ai_provider import AIProviderClient, get_ai_provider_client
+from app.constants import ARTICLE_CATEGORY_DESCRIPTIONS
 from app.extensions import db
 from app.models import Article, Summary
 
@@ -9,13 +10,14 @@ class SummarizationService:
 
     def summarize(self, article: Article) -> Summary:
         content = article.raw_content or article.title
-        summary_text = self.client.summarize(content)
+        result = self.client.summarize(content, ARTICLE_CATEGORY_DESCRIPTIONS)
 
         summary = article.summary or Summary(article_id=article.id)
-        summary.content = summary_text
+        summary.content = result.summary
         summary.provider = self.client.name
         summary.model_name = getattr(self.client, "model", self.client.name)
 
+        article.category = result.category
         article.summary_status = "completed"
 
         db.session.add(summary)

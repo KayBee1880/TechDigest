@@ -1,12 +1,19 @@
 import os
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+
+
+@dataclass
+class SummaryResult:
+    summary: str
+    category: str
 
 
 class AIProviderClient(ABC):
     name: str
 
     @abstractmethod
-    def summarize(self, text: str) -> str:
+    def summarize(self, text: str, categories: dict[str, str]) -> SummaryResult:
         raise NotImplementedError
 
 

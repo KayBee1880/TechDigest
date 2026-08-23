@@ -1,3 +1,4 @@
+from app.constants import ARTICLE_CATEGORIES
 from app.extensions import db
 from app.models import Article, ArticleSource, Summary
 from app.utils.time import utc_now
@@ -10,7 +11,7 @@ def _make_source(name="Test Source"):
     return source
 
 
-def _make_article(source, title="A Title", summary_status="pending"):
+def _make_article(source, title="A Title", summary_status="pending", category=None):
     slug = title.lower().replace(" ", "-")
     article = Article(
         source_id=source.id,
@@ -21,6 +22,7 @@ def _make_article(source, title="A Title", summary_status="pending"):
         raw_content="body",
         published_at=utc_now(),
         summary_status=summary_status,
+        category=category,
     )
     db.session.add(article)
     db.session.commit()
@@ -71,6 +73,25 @@ def test_list_articles_supports_pagination_params(app, client):
     assert body["per_page"] == 2
     assert body["total"] == 3
     assert len(body["items"]) == 2
+
+
+def test_list_articles_filters_by_category(app, client):
+    source = _make_source()
+    _make_article(source, title="Security Article", category="Security")
+    _make_article(source, title="Web Article", category="Web Development")
+
+    response = client.get("/api/articles?category=Security")
+
+    body = response.get_json()
+    assert body["total"] == 1
+    assert body["items"][0]["title"] == "Security Article"
+
+
+def test_list_categories_returns_the_full_taxonomy(app, client):
+    response = client.get("/api/articles/categories")
+
+    assert response.status_code == 200
+    assert response.get_json() == ARTICLE_CATEGORIES
 
 
 def test_get_article_detail_returns_article(app, client):

@@ -1,5 +1,7 @@
 from unittest.mock import Mock
 
+from app.clients.ai_provider import SummaryResult
+from app.constants import ARTICLE_CATEGORY_DESCRIPTIONS
 from app.extensions import db
 from app.models import Article, ArticleSource, Summary
 from app.services.summarization_service import SummarizationService
@@ -27,24 +29,25 @@ def _make_article(raw_content="Full article body."):
     return article
 
 
-def _fake_client(response_text="A generated summary."):
+def _fake_client(summary_text="A generated summary.", category="Security"):
     client = Mock()
     client.name = "ollama"
     client.model = "llama3.2"
-    client.summarize.return_value = response_text
+    client.summarize.return_value = SummaryResult(summary=summary_text, category=category)
     return client
 
 
 def test_summarize_creates_summary_and_marks_article_completed(app):
     article = _make_article()
-    client = _fake_client("A generated summary.")
+    client = _fake_client("A generated summary.", category="Security")
 
     summary = SummarizationService(client=client).summarize(article)
 
-    client.summarize.assert_called_once_with(article.raw_content)
+    client.summarize.assert_called_once_with(article.raw_content, ARTICLE_CATEGORY_DESCRIPTIONS)
     assert summary.content == "A generated summary."
     assert summary.provider == "ollama"
     assert summary.model_name == "llama3.2"
+    assert article.category == "Security"
     assert article.summary_status == "completed"
     assert Summary.query.filter_by(article_id=article.id).count() == 1
 
@@ -55,7 +58,7 @@ def test_summarize_falls_back_to_title_when_no_raw_content(app):
 
     SummarizationService(client=client).summarize(article)
 
-    client.summarize.assert_called_once_with(article.title)
+    client.summarize.assert_called_once_with(article.title, ARTICLE_CATEGORY_DESCRIPTIONS)
 
 
 def test_summarize_updates_existing_summary_instead_of_duplicating(app):
