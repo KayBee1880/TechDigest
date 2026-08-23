@@ -11,6 +11,7 @@ class ArticleService:
         page: int = 1,
         per_page: int = DEFAULT_PER_PAGE,
         source_id: int | None = None,
+        category: str | None = None,
         q: str | None = None,
     ):
         per_page = min(per_page, self.MAX_PER_PAGE)
@@ -18,6 +19,9 @@ class ArticleService:
 
         if source_id is not None:
             query = query.filter_by(source_id=source_id)
+
+        if category:
+            query = query.filter_by(category=category)
 
         if q:
             query = query.filter(Article.title.ilike(f"%{q}%"))

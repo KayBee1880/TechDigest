@@ -13,7 +13,7 @@ def _make_source(name="Test Source"):
     return source
 
 
-def _make_article(source, title="A Title", published_at=None):
+def _make_article(source, title="A Title", published_at=None, category=None):
     article = Article(
         source_id=source.id,
         title=title,
@@ -22,6 +22,7 @@ def _make_article(source, title="A Title", published_at=None):
         title_hash="x" * 64,
         raw_content="body",
         published_at=published_at or utc_now(),
+        category=category,
     )
     db.session.add(article)
     db.session.commit()
@@ -58,6 +59,16 @@ def test_list_articles_filters_by_source_id(app):
     pagination = ArticleService().list_articles(source_id=source_a.id)
 
     assert [a.id for a in pagination.items] == [article_a.id]
+
+
+def test_list_articles_filters_by_category(app):
+    source = _make_source()
+    match = _make_article(source, title="Security Article", category="Security")
+    _make_article(source, title="Web Article", category="Web Development")
+
+    pagination = ArticleService().list_articles(category="Security")
+
+    assert [a.id for a in pagination.items] == [match.id]
 
 
 def test_list_articles_filters_by_search_query(app):
