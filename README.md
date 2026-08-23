@@ -7,13 +7,17 @@
 [![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)](backend/requirements.txt)
 [![Flask](https://img.shields.io/badge/Flask-3.1-000000?logo=flask&logoColor=white)](backend/requirements.txt)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](docker-compose.yml)
-[![Status](https://img.shields.io/badge/status-redesign%20complete-yellow)](#roadmap)
+[![Status](https://img.shields.io/badge/status-deployed-brightgreen)](#roadmap)
+
+**[Live demo →](https://tech-digest-mu.vercel.app)** · [API](https://techdigest-backend.onrender.com/health)
 
 </div>
 
 ---
 
 Users get a single feed of technology news pulled from multiple sources, each article summarized by AI. The feed is the point; the async backend behind it exists to keep fetching and summarizing — both slow, unreliable operations — from ever blocking what a user actually sees.
+
+> The live demo runs on free-tier hosting: the backend spins down after inactivity (first request after idle can take ~50s), and production ingestion runs on a schedule rather than the persistent Celery worker local dev uses — see [docs/deployment.md](docs/deployment.md) for exactly why and what changed.
 
 ## Why this project exists
 
@@ -76,10 +80,7 @@ Full data flow, failure handling, and the deduplication strategy: [docs/architec
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS v4, TanStack Query, React Router | Typed API client generated to match the backend's own Marshmallow schemas |
 | Frontend testing | Vitest, React Testing Library | Query components the way a user would, not by implementation detail |
 | CI/CD | GitHub Actions (Ruff, pytest, ESLint, `tsc`, Vitest, Docker build) | Every PR runs lint + tests + a real container build before merge |
-
-| Layer | Planned | Milestone |
-|---|---|---|
-| Deployment | Netlify/Vercel + Render/Railway + Neon + Upstash | M7 |
+| Deployment | Vercel (frontend), Render (backend API), Neon (Postgres), GitHub Actions (scheduled ingestion) | Free-tier hosting throughout; production trades the persistent Celery worker for a scheduled job — see [docs/deployment.md](docs/deployment.md) |
 
 ## Roadmap
 
@@ -91,8 +92,8 @@ Full data flow, failure handling, and the deduplication strategy: [docs/architec
 - [x] M5 — Frontend
 - [x] M6 — CI/CD
 - [x] Visual redesign & categories
-- [ ] M7 — Deployment
-- [ ] M8 — Documentation & polish
+- [x] M7 — Deployment
+- [ ] M8 — Documentation & polish *(current)*
 
 Full milestone breakdown: [docs/roadmap.md](docs/roadmap.md).
 
