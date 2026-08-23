@@ -38,6 +38,15 @@ class BookmarkService:
                 user_id=user_id, article_id=article_id
             ).first()
 
+    def update_notes(self, user_id: int, bookmark_id: int, notes: str | None) -> Bookmark | None:
+        bookmark = Bookmark.query.filter_by(id=bookmark_id, user_id=user_id).first()
+        if bookmark is None:
+            return None
+
+        bookmark.notes = notes
+        db.session.commit()
+        return bookmark
+
     def remove_bookmark(self, user_id: int, bookmark_id: int) -> bool:
         bookmark = Bookmark.query.filter_by(id=bookmark_id, user_id=user_id).first()
         if bookmark is None:

@@ -61,6 +61,39 @@ def test_add_bookmark_returns_none_for_unknown_article(app):
     assert result is None
 
 
+def test_update_notes_sets_notes_on_bookmark(app):
+    user = _make_user()
+    article = _make_article()
+    service = BookmarkService()
+    bookmark = service.add_bookmark(user_id=user.id, article_id=article.id)
+
+    updated = service.update_notes(
+        user_id=user.id, bookmark_id=bookmark.id, notes="Worth revisiting"
+    )
+
+    assert updated.notes == "Worth revisiting"
+
+
+def test_update_notes_returns_none_for_unknown_id(app):
+    user = _make_user()
+
+    result = BookmarkService().update_notes(user_id=user.id, bookmark_id=999999, notes="x")
+
+    assert result is None
+
+
+def test_update_notes_returns_none_for_another_users_bookmark(app):
+    owner = _make_user(email="owner@example.com")
+    intruder = _make_user(email="intruder@example.com")
+    article = _make_article()
+    service = BookmarkService()
+    bookmark = service.add_bookmark(user_id=owner.id, article_id=article.id)
+
+    result = service.update_notes(user_id=intruder.id, bookmark_id=bookmark.id, notes="x")
+
+    assert result is None
+
+
 def test_remove_bookmark_removes_and_returns_true(app):
     user = _make_user()
     article = _make_article()

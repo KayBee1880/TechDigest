@@ -2,7 +2,7 @@ from flask import Blueprint, g, jsonify, request
 from marshmallow import ValidationError
 
 from app.api.auth import login_required
-from app.schemas.bookmark_schema import BookmarkCreateSchema, BookmarkSchema
+from app.schemas.bookmark_schema import BookmarkCreateSchema, BookmarkSchema, BookmarkUpdateSchema
 from app.services.bookmark_service import BookmarkService
 
 bookmarks_bp = Blueprint("bookmarks", __name__)
@@ -10,6 +10,7 @@ bookmarks_bp = Blueprint("bookmarks", __name__)
 bookmark_schema = BookmarkSchema()
 bookmarks_schema = BookmarkSchema(many=True)
 bookmark_create_schema = BookmarkCreateSchema()
+bookmark_update_schema = BookmarkUpdateSchema()
 
 
 @bookmarks_bp.route("/api/bookmarks")
@@ -54,6 +55,25 @@ def create_bookmark():
         return jsonify(error="Article not found"), 404
 
     return jsonify(bookmark_schema.dump(bookmark)), 201
+
+
+@bookmarks_bp.route("/api/bookmarks/<int:bookmark_id>", methods=["PATCH"])
+@login_required
+def update_bookmark(bookmark_id):
+    try:
+        data = bookmark_update_schema.load(request.get_json(silent=True) or {})
+    except ValidationError as err:
+        return jsonify(errors=err.messages), 400
+
+    service = BookmarkService()
+    bookmark = service.update_notes(
+        user_id=g.current_user_id, bookmark_id=bookmark_id, notes=data["notes"]
+    )
+
+    if bookmark is None:
+        return jsonify(error="Bookmark not found"), 404
+
+    return jsonify(bookmark_schema.dump(bookmark))
 
 
 @bookmarks_bp.route("/api/bookmarks/<int:bookmark_id>", methods=["DELETE"])
