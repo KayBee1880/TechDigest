@@ -6,6 +6,7 @@ interface ListArticlesParams {
   page?: number
   per_page?: number
   source_id?: number
+  category?: string
   q?: string
 }
 
@@ -28,6 +29,10 @@ export function fetchArticle(id: number): Promise<Article> {
   return apiRequest(`/articles/${id}`)
 }
 
+export function fetchCategories(): Promise<string[]> {
+  return apiRequest('/articles/categories')
+}
+
 export function useArticles(params: ListArticlesParams = {}) {
   return useQuery({
     queryKey: ['articles', params],
@@ -40,5 +45,13 @@ export function useArticle(id: number) {
     queryKey: ['article', id],
     queryFn: () => fetchArticle(id),
     enabled: Number.isFinite(id),
+  })
+}
+
+export function useCategories() {
+  return useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+    staleTime: Infinity,
   })
 }
