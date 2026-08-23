@@ -53,19 +53,21 @@ def test_list_articles_returns_items_with_source_and_summary(app, client):
     assert item["summary"]["content"] == "A summary."
 
 
-def test_list_articles_returns_null_summary_when_pending(app, client):
+def test_list_articles_excludes_articles_without_a_completed_summary(app, client):
     source = _make_source()
-    _make_article(source, summary_status="pending")
+    _make_article(source, title="Pending", summary_status="pending")
+    _make_article(source, title="Failed", summary_status="failed")
+    _make_article(source, title="Unavailable", summary_status="unavailable")
 
     response = client.get("/api/articles")
 
-    assert response.get_json()["items"][0]["summary"] is None
+    assert response.get_json()["total"] == 0
 
 
 def test_list_articles_supports_pagination_params(app, client):
     source = _make_source()
     for i in range(3):
-        _make_article(source, title=f"Article {i}")
+        _make_article(source, title=f"Article {i}", summary_status="completed")
 
     response = client.get("/api/articles?per_page=2&page=1")
 
@@ -77,8 +79,12 @@ def test_list_articles_supports_pagination_params(app, client):
 
 def test_list_articles_filters_by_category(app, client):
     source = _make_source()
-    _make_article(source, title="Security Article", category="Security")
-    _make_article(source, title="Web Article", category="Web Development")
+    _make_article(
+        source, title="Security Article", category="Security", summary_status="completed"
+    )
+    _make_article(
+        source, title="Web Article", category="Web Development", summary_status="completed"
+    )
 
     response = client.get("/api/articles?category=Security")
 

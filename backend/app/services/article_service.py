@@ -15,7 +15,9 @@ class ArticleService:
         q: str | None = None,
     ):
         per_page = min(per_page, self.MAX_PER_PAGE)
-        query = Article.query.order_by(Article.published_at.desc())
+        query = Article.query.filter_by(summary_status="completed").order_by(
+            Article.published_at.desc()
+        )
 
         if source_id is not None:
             query = query.filter_by(source_id=source_id)

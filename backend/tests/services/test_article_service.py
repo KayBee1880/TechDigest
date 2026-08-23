@@ -13,7 +13,9 @@ def _make_source(name="Test Source"):
     return source
 
 
-def _make_article(source, title="A Title", published_at=None, category=None):
+def _make_article(
+    source, title="A Title", published_at=None, category=None, summary_status="completed"
+):
     article = Article(
         source_id=source.id,
         title=title,
@@ -23,10 +25,23 @@ def _make_article(source, title="A Title", published_at=None, category=None):
         raw_content="body",
         published_at=published_at or utc_now(),
         category=category,
+        summary_status=summary_status,
     )
     db.session.add(article)
     db.session.commit()
     return article
+
+
+def test_list_articles_excludes_articles_without_a_completed_summary(app):
+    source = _make_source()
+    completed = _make_article(source, title="Completed Article", summary_status="completed")
+    _make_article(source, title="Pending Article", summary_status="pending")
+    _make_article(source, title="Failed Article", summary_status="failed")
+    _make_article(source, title="Unavailable Article", summary_status="unavailable")
+
+    pagination = ArticleService().list_articles()
+
+    assert [a.id for a in pagination.items] == [completed.id]
 
 
 def test_list_articles_returns_paginated_results(app):
