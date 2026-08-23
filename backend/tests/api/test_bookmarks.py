@@ -75,6 +75,42 @@ def test_list_bookmarks_returns_only_current_users_bookmarks(app, client):
     assert response.get_json()["total"] == 0
 
 
+def test_update_bookmark_sets_notes(app, client):
+    user = _make_user()
+    article = _make_article()
+    create_response = client.post(
+        "/api/bookmarks", json={"article_id": article.id}, headers=_auth_headers(user)
+    )
+    bookmark_id = create_response.get_json()["id"]
+
+    response = client.patch(
+        f"/api/bookmarks/{bookmark_id}",
+        json={"notes": "Worth revisiting"},
+        headers=_auth_headers(user),
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["notes"] == "Worth revisiting"
+
+
+def test_update_bookmark_returns_404_for_another_users_bookmark(app, client):
+    owner = _make_user(email="owner@example.com")
+    intruder = _make_user(email="intruder@example.com")
+    article = _make_article()
+    create_response = client.post(
+        "/api/bookmarks", json={"article_id": article.id}, headers=_auth_headers(owner)
+    )
+    bookmark_id = create_response.get_json()["id"]
+
+    response = client.patch(
+        f"/api/bookmarks/{bookmark_id}",
+        json={"notes": "x"},
+        headers=_auth_headers(intruder),
+    )
+
+    assert response.status_code == 404
+
+
 def test_delete_bookmark_returns_204(app, client):
     user = _make_user()
     article = _make_article()
