@@ -61,7 +61,7 @@ def get_ai_provider_client() -> AIProviderClient:
 
         return OpenRouterClient(
             api_key=os.environ["OPENROUTER_API_KEY"],
-            model=os.environ.get("OPENROUTER_MODEL", "nvidia/nemotron-nano-9b-v2:free"),
+            model=os.environ.get("OPENROUTER_MODEL", "nvidia/nemotron-3-super-120b-a12b:free"),
         )
 
     raise ValueError(f"Unsupported AI_PROVIDER: {provider!r}")

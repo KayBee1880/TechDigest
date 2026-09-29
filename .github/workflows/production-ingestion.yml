@@ -30,7 +30,7 @@ jobs:
           DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
           AI_PROVIDER: openrouter
           OPENROUTER_API_KEY: ${{ secrets.PROD_OPENROUTER_API_KEY }}
-          OPENROUTER_MODEL: nvidia/nemotron-nano-9b-v2:free
+          OPENROUTER_MODEL: nvidia/nemotron-3-super-120b-a12b:free
           SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
           JWT_SECRET_KEY: ${{ secrets.PROD_JWT_SECRET_KEY }}
         run: python -m scripts.run_production_pipeline
