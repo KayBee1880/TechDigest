@@ -10,7 +10,7 @@ This is the real, verified setup — every step below was actually run against t
 |---|---|---|
 | Postgres | [Neon](https://neon.tech) | The real database — articles, users, bookmarks, everything |
 | Backend API | [Render](https://render.com) (Web Service) | Flask + gunicorn, Dockerfile-based |
-| Scheduled ingestion | GitHub Actions | Runs ingestion + AI summarization every 15 minutes |
+| Scheduled ingestion | GitHub Actions | Runs ingestion + AI summarization — scheduled every 15 minutes, in practice every few hours (measured; see limitations) |
 | Frontend | [Vercel](https://vercel.com) | Static Vite build |
 | Redis | [Upstash](https://upstash.com) | Provisioned, currently **unused** — see below |
 
@@ -18,9 +18,9 @@ This is the real, verified setup — every step below was actually run against t
 
 Locally (`docker-compose.yml`), ingestion and AI summarization run through a persistent Celery worker + Beat scheduler, backed by Redis — the real async architecture this project is built around, complete with retry/backoff, task idempotency, and its own test suite (see `docs/architecture.md`).
 
-Production doesn't use that, for one concrete reason: **Render's free tier only covers Web Services.** Both a persistent Background Worker and a Cron Job require a paid plan there — discovered by actually trying to create them, not from reading pricing docs in advance. Rather than pay for an always-on process to handle a workload that's genuinely light (a handful of new articles every 15 minutes), scheduled ingestion moved to a **GitHub Actions workflow** (`.github/workflows/production-ingestion.yml`) on a `cron: "*/15 * * * *"` schedule, running a synchronous script (`backend/scripts/run_production_pipeline.py`) directly against Neon and OpenRouter — no queue, no broker, no persistent process.
+Production doesn't use that, for one concrete reason: **Render's free tier only covers Web Services.** Both a persistent Background Worker and a Cron Job require a paid plan there — discovered by actually trying to create them, not from reading pricing docs in advance. Rather than pay for an always-on process to handle a workload that's genuinely light (a handful of new articles per run), scheduled ingestion moved to a **GitHub Actions workflow** (`.github/workflows/production-ingestion.yml`) on a `cron: "*/15 * * * *"` schedule, running a synchronous script (`backend/scripts/run_production_pipeline.py`) directly against Neon and OpenRouter — no queue, no broker, no persistent process.
 
-This preserves the actual guarantee that matters — the API never blocks on ingestion or AI calls, since ingestion happens in a completely separate process on its own schedule — while trading Celery's in-process retry/backoff and task concurrency for a simpler, cron-run equivalent (bounded retries tracked in `processing_failures`, spread across scheduled runs instead of seconds apart). For this workload's actual volume, that's a reasonable fit, not a downgrade pretending not to be one. Honest caveat: GitHub's scheduled workflows aren't guaranteed to fire at exactly `*/15` — GitHub can delay a scheduled run by several minutes under load. Fine here; nothing about this app is time-critical at the minute level.
+This preserves the actual guarantee that matters — the API never blocks on ingestion or AI calls, since ingestion happens in a completely separate process on its own schedule — while trading Celery's in-process retry/backoff and task concurrency for a simpler, cron-run equivalent (bounded retries tracked in `processing_failures`, spread across scheduled runs instead of seconds apart). For this workload's actual volume, that's a reasonable fit, not a downgrade pretending not to be one. Honest caveat, measured rather than assumed: GitHub treats a `*/15` cron as a request, not a promise — across 299 real runs the median gap between runs was about 2.3 hours (90th percentile ~5 hours, worst gap ~45 hours). So feed freshness is measured in hours, not minutes. Acceptable for a demo news digest; not something to describe as "every 15 minutes."
 
 **Upstash Redis** was originally provisioned for a persistent Celery worker under the original plan. It's kept, deliberately, even though nothing in production currently connects to it — costs nothing on the free tier, and stays available if real traffic ever justified paying for a persistent worker later.
 
@@ -39,7 +39,7 @@ SECRET_KEY=<random, generated separately from local dev's>
 JWT_SECRET_KEY=<random, generated separately from local dev's>
 AI_PROVIDER=openrouter
 OPENROUTER_API_KEY=<OpenRouter API key>
-OPENROUTER_MODEL=nvidia/nemotron-nano-9b-v2:free
+OPENROUTER_MODEL=nvidia/nemotron-3-super-120b-a12b:free
 CORS_ORIGINS=<the real deployed frontend URL>
 ```
 
@@ -56,6 +56,12 @@ CORS_ORIGINS=<the real deployed frontend URL>
 ## Known limitations, stated honestly
 
 - **Cold starts.** Render's free web service spins down after inactivity; the first request after idle time can take ~50 seconds. Expected, not a bug.
-- **Ingestion timing isn't exact.** GitHub Actions' `cron` schedule can drift by several minutes under platform load.
-- **Free-tier AI reliability.** OpenRouter's free models occasionally return rate limits from their shared pool — the pipeline just retries on the next scheduled run rather than failing hard.
+- **Ingestion is far less frequent than its schedule.** The workflow requests every 15 minutes; GitHub actually ran it a median of ~2.3 hours apart (p90 ~5h, worst gap ~45h, from 299 recorded runs). New articles appear in batches, hours apart.
+- **Free-tier AI is unreliable in two different ways.** Individual calls get rate-limited or hit `503` from OpenRouter's shared pools — the pipeline retries those on later runs, and a run reports only a `503` message, not a crash. Separately, the free *catalog itself churns*: the model chosen at launch was retired within a day (see the incident below). The current model is set in `.github/workflows/production-ingestion.yml`; if it stops working, list `https://openrouter.ai/api/v1/models`, filter for `:free`, and test candidates before switching — don't assume a name that used to work still does.
+- **A run that summarizes nothing now fails visibly.** `scripts/run_production_pipeline.py` exits non-zero when it attempted summaries and none succeeded, so a red run in the Actions tab means something systemic broke (model retired, key revoked, provider down) — individual failures still don't turn it red. It only helps if someone looks: check that GitHub's Actions notifications are enabled for the account.
+- **Dependencies that change behavior are pinned.** `SQLAlchemy` and `alembic` are pinned in `backend/requirements.txt` because an unpinned SQLAlchemy 2.1 silently changed the default Postgres driver and broke every fresh install (CI, Docker builds) while an older local environment kept working.
 - **A one-time data seed.** The 137 articles present at initial deploy were copied from local dev (`scripts/copy_articles_to_production.py`) so the demo didn't start empty — everything since then is live, real ingestion.
+
+## Post-launch incident: summarization silently stopped for a month
+
+From about Aug 24 to Sep 26, no new article was summarized, so the feed (which shows only summarized articles) stopped updating — while the scheduled workflow kept reporting success. The free model selected at launch had been retired by OpenRouter; every summarization call returned `404`, the pipeline caught each failure per article (by design, so one bad article can't sink a run) and exited 0. Nothing checked whether *any* article had succeeded. It was found when a separate failure finally turned the job red: an unpinned dependency had changed SQLAlchemy's default Postgres driver, breaking fresh installs. Fixes: dependencies pinned, model replaced with one verified against known-correct classifications, the job now fails when a run makes zero progress, per-run summarization is capped (newest first), and the OpenRouter client reports upstream error bodies instead of an opaque `KeyError`. Articles that exhausted their retry budget during the outage were marked `failed` and have to be reset deliberately.
