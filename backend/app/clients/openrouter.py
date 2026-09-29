@@ -30,5 +30,11 @@ class OpenRouterClient(AIProviderClient):
             timeout=60,
         )
         response.raise_for_status()
-        raw = response.json()["choices"][0]["message"]["content"].strip()
+        body = response.json()
+        if "error" in body:
+            error = body["error"]
+            detail = error.get("message") if isinstance(error, dict) else error
+            code = error.get("code") if isinstance(error, dict) else None
+            raise RuntimeError(f"OpenRouter returned an error ({code}): {detail}")
+        raw = body["choices"][0]["message"]["content"].strip()
         return parse_summary_response(raw, categories)
