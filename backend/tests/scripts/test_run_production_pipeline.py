@@ -97,6 +97,30 @@ def test_run_pipeline_caps_attempts_per_run_and_takes_newest_first(mock_service_
     assert summarized == [newest.id, middle.id]
 
 
+@patch("scripts.run_production_pipeline.MAX_SUMMARIES_PER_RUN", 1)
+@patch("scripts.run_production_pipeline.SummarizationService")
+def test_an_article_that_already_failed_is_retried_before_a_newer_untried_one(
+    mock_service_cls, app
+):
+    # Regression test: a run that rate-limits every attempt (attempted == succeeded == 0,
+    # a real production event) must not strand those articles behind an endless stream of
+    # newer arrivals on later runs - the newest-first fallback alone can starve them
+    # indefinitely if ingestion keeps outpacing MAX_SUMMARIES_PER_RUN.
+    source = _make_source()
+    already_failed = _make_article(source, "already-failed", age_days=1)
+    db.session.add(
+        ProcessingFailure(article_id=already_failed.id, attempt_number=1, error_message="429")
+    )
+    db.session.commit()
+    _make_article(source, "brand-new", age_days=0)  # newer, but never attempted
+    summarized = []
+    mock_service_cls.return_value.summarize.side_effect = lambda a: summarized.append(a.id)
+
+    pipeline.run_pipeline()
+
+    assert summarized == [already_failed.id]
+
+
 @patch("scripts.run_production_pipeline.SummarizationService")
 def test_failed_attempt_is_logged_and_article_stays_pending_for_the_next_run(
     mock_service_cls, app

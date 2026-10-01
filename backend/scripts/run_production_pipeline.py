@@ -1,5 +1,7 @@
 import sys
 
+from sqlalchemy import func
+
 from app import create_app
 from app.extensions import db
 from app.models import Article, ArticleSource, ProcessingFailure
@@ -39,6 +41,30 @@ def summarize_one(article: Article) -> bool | None:
         return False
 
 
+def select_pending(limit: int) -> list[Article]:
+    """Pending articles to attempt this run: articles that have already failed at least
+    once come first (so a brief rate-limit spike can't strand them behind an endless
+    stream of newer arrivals), newest first within each group."""
+    failure_counts = (
+        db.session.query(
+            ProcessingFailure.article_id.label("article_id"),
+            func.count(ProcessingFailure.id).label("failures"),
+        )
+        .group_by(ProcessingFailure.article_id)
+        .subquery()
+    )
+    return (
+        Article.query.outerjoin(failure_counts, Article.id == failure_counts.c.article_id)
+        .filter(Article.summary_status == "pending")
+        .order_by(
+            func.coalesce(failure_counts.c.failures, 0).desc(),
+            Article.published_at.desc(),
+        )
+        .limit(limit)
+        .all()
+    )
+
+
 def run_pipeline() -> tuple[int, int]:
     """Ingest, then summarize pending articles. Returns (attempted, succeeded)."""
     ingestion_service = NewsIngestionService()
@@ -59,13 +85,8 @@ def run_pipeline() -> tuple[int, int]:
     ).update({"summary_status": "unavailable"}, synchronize_session=False)
     db.session.commit()
 
-    pending = (
-        Article.query.filter_by(summary_status="pending")
-        .order_by(Article.published_at.desc())
-        .limit(MAX_SUMMARIES_PER_RUN)
-        .all()
-    )
-    print(f"Summarizing {len(pending)} pending article(s) (newest first)...")
+    pending = select_pending(MAX_SUMMARIES_PER_RUN)
+    print(f"Summarizing {len(pending)} pending article(s) (retries first, then newest)...")
 
     results = [summarize_one(article) for article in pending]
     attempted = sum(1 for r in results if r is not None)
