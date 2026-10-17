@@ -27,11 +27,10 @@ Reading tech news well means checking a handful of different sources and skimmin
 
 This is built in deliberate, documented milestones, not as fast as possible — and it's honest about what's actually done versus planned:
 
-- **No invented metrics.** This project replaces an earlier version of itself that overclaimed on a resume — "500+ users," production deployment — none of which existed. Every claim in this README is something you can clone the repo and verify yourself.
 - **Naive approach, documented, then the fix.** Every non-trivial design decision in [docs/architecture.md](docs/architecture.md) is written as: the simple version, why it breaks, and the actual fix — not just the end result presented as obvious.
 - **Database-enforced guarantees, not just application checks.** Article deduplication has a fast application-side check, but the real guarantee is a database-level unique constraint with proper race-condition handling — verified with a test that simulates the race, not just trusted.
 - **Deliberate scope boundaries.** Features explicitly out of scope for now (recommendations, multi-language, notifications) are documented as decisions in [docs/project-definition.md](docs/project-definition.md), not silently absent.
-- **Tests where they earn their keep.** 97 backend tests (`pytest`) plus 9 frontend tests (Vitest + React Testing Library), zero live network calls anywhere — all external HTTP (including the AI provider) is mocked — with the trickier backend logic (dedup, race handling, retry/backoff, task idempotency, per-user bookmark scoping) actually exercised against a real Postgres test database, not faked.
+- **Tests where they earn their keep.** 103 backend tests (`pytest`) plus 9 frontend tests (Vitest + React Testing Library), zero live network calls anywhere — all external HTTP (including the AI provider) is mocked — with the trickier backend logic (dedup, race handling, retry/backoff, task idempotency, per-user bookmark scoping) actually exercised against a real Postgres test database, not faked.
 
 ## What's actually working right now
 
@@ -43,7 +42,7 @@ This is built in deliberate, documented milestones, not as fast as possible — 
 - REST API: article listing with pagination/source/category filter/keyword search, article detail, JWT-based registration/login, and bookmarks CRUD (with personal notes) scoped per user — all request/response validation and serialization via Marshmallow
 - A React + TypeScript frontend with an editorial visual design and a light/dark theme toggle: feed (search + category filter + pagination), article detail with bookmarking and inline notes, saved articles, login/register — talking to the real API via React Query, styled with Tailwind CSS
 - The feed only ever shows articles with a completed AI summary and category — nothing half-processed is ever shown as if it were finished
-- 97 backend tests (`pytest`) + 9 frontend tests (Vitest + RTL), all external HTTP mocked
+- 103 backend tests (`pytest`) + 9 frontend tests (Vitest + RTL), all external HTTP mocked
 - A full local dev stack (Postgres, Redis, backend, worker, beat, Ollama) via one `docker compose up`
 - CI on every PR (GitHub Actions): Ruff + pytest against a real Postgres service container, ESLint + `tsc` + Vitest, and a Docker image build check
 
@@ -109,17 +108,19 @@ techdigest/
       services/   Business logic
       utils/      Shared, dependency-free helpers
     migrations/   Alembic migrations
-    scripts/      Manual seed/ingestion scripts
-    tests/        Pytest suite, mirrors app/ structure
+    scripts/      One-off/scheduled scripts (seed, ingest, backfill, production pipeline)
+    tests/        Pytest suite, mirrors app/ and scripts/ structure
   frontend/     React + TypeScript SPA
     src/
       api/        Fetch wrapper, types, and React Query hooks
       auth/       Client-side session state (JWT in localStorage)
-      components/ Shared UI (nav/layout)
+      components/ Shared UI (nav, category badges, theme toggle)
       pages/      One component per route
+      theme/      Light/dark theme context + provider
     tests/        Vitest + RTL suite, mirrors src/ structure
   docs/         Architecture, API, schema, deployment, testing docs
-  .github/      CI workflows, issue/PR templates (not yet built)
+  .github/      CI (backend, frontend, Docker build) + scheduled production ingestion
+  docker-compose.yml   Local dev stack: Postgres, Redis, backend, worker, beat, Ollama
 ```
 
 ## Local setup
